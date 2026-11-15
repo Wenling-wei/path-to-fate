@@ -50,8 +50,10 @@ export const ACHS: Ach[] = [
   { id: 'fullparent', group: '行当', name: '把自己切给了孩子', desc: '切掉行当，全职培养孩子。', test: (s) => s.stats.fullparent },
   { id: 'aiup', group: '行当', name: '重配成功', desc: 'AI 发牌机启动后，结局雷达的折旧管理达到 8。', test: (_s, e) => !!e && (e.radar.find((r) => r.label === '折旧管理')?.v ?? 0) >= 8 },
   // 官场
-  { id: 'rank2', group: '官场', name: '科长', desc: '当上科长。', test: (s) => s.stats.topRank >= 2 },
-  { id: 'rank4', group: '官场', name: '厅局级', desc: '升到厅局级。', test: (s) => s.stats.topRank >= 4 },
+  { id: 'rank2', group: '官场', name: '科长', desc: '当上科长。', test: (s) => s.stats.topRank >= 3 },
+  { id: 'rank4', group: '官场', name: '厅局级', desc: '升到厅局级。', test: (s) => s.stats.topRank >= 7 },
+  { id: 'rank8', group: '官场', name: '副部级', desc: '升到副部级。', test: (s) => s.stats.topRank >= 8 },
+  { id: 'buyrank', group: '官场', name: '跑官', desc: '资历不够，拿钱补上，换来一次升迁。', test: (s) => (s.stats.ev.buyRank ?? 0) > 0 },
   { id: 'clean', group: '官场', name: '两袖清风', desc: '当到处长以上，问题始终为 0，直到终局。', test: (_s, e) => titled(e, '《两袖清风》') },
   { id: 'landed', group: '官场', name: '平安落地', desc: '当到处长以上，有问题，但没被查到。', hidden: true, test: (_s, e) => titled(e, '《平安落地》') },
   { id: 'caught', group: '官场', name: '落马', desc: '被查。', test: (s) => s.stats.caught },

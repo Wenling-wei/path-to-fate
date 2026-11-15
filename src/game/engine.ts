@@ -21,6 +21,7 @@ export interface CardDef {
   instant: boolean; iCash: number; iRank: boolean; iTies: number; iDirty: number; iMerit: number; refTies: number
   gMerit: number; gTies: number
   risk?: { p: number; ev: string; fine?: number; face?: number; rel?: number; jail?: number; killParent?: boolean; text?: string }
+  rank: number; price: number; pDirty: number
   noTag: string[]; maxCash?: number; iAdd?: string; iKid: number; iRel: number; expireFace: number; expireRel: number
   locked: boolean; bad: boolean; entry: boolean; upgrade: boolean; cn: boolean; ab: boolean
   entryReq?: { tag?: string; cash?: number; maxTurn?: number; minTurn?: number }
@@ -32,7 +33,7 @@ const DEFAULTS = {
   tags: [] as string[], flavor: '', upE: 0, upC: 0, cash: 0, fd: 0, od: 0, vol: 0, dFace: 0, dCash: 0, dRel: 0, relOpt: 0,
   needs: [] as string[], needsTag: [] as string[], needBond: 0, minTurn: 1, maxTurn: 99, cost: 0, refFace: 0, life: 0, expireCash: 0,
   kEdu: 0, kBond: 0, kSelf: 0, accBond: 0, refBond: 0, slot: 0.5, needCash: 0, needGov: 0, needAll: [] as string[], minDirty: 0,
-  instant: false, iCash: 0, iRank: false, iTies: 0, iDirty: 0, iMerit: 0, refTies: 0, gMerit: 0, gTies: 0, noTag: [] as string[], iKid: 0, iRel: 0, expireFace: 0, expireRel: 0, locked: false, bad: false, entry: false, upgrade: false, cn: false, ab: false,
+  instant: false, iCash: 0, iRank: false, iTies: 0, iDirty: 0, iMerit: 0, refTies: 0, gMerit: 0, gTies: 0, rank: 0, price: 0, pDirty: 0, noTag: [] as string[], iKid: 0, iRel: 0, expireFace: 0, expireRel: 0, locked: false, bad: false, entry: false, upgrade: false, cn: false, ab: false,
 }
 export const CARDS: CardDef[] = (cardsRaw as unknown as Partial<CardDef>[]).map((c) => ({ ...DEFAULTS, ...c }) as CardDef)
 export const CARD: Record<string, CardDef> = Object.fromEntries(CARDS.map((c) => [c.id, c]))
@@ -73,7 +74,7 @@ export interface State {
   offer: { id: string; parentUid: number } | null
   queue: { id: string; parentUid: number }[]
   cool: Record<string, number>
-  cutLine: Line | null; entries: string[]
+  cutLine: Line | null; entries: string[]; bought: number
   log: LogLine[]; flash: Flash | null
   stats: Stats; endCause: null | 'body' | 'cash' | 'death'
 }
@@ -81,7 +82,7 @@ export interface State {
 export const initial: State = {
   phase: 'pick', originId: '', hard: false, turn: 0, cash: 0, face: 0, opt: 0, bodyDebt: 0, relDebt: 0,
   holdings: [], uidSeq: 0, eraId: null, aiOn: false, delay: false, retired: false, parentsGone: false, kid: null, gov: null, jail: 0, abroad: false, abroadSince: 0, landing: false,
-  offer: null, queue: [], cool: {}, cutLine: null, entries: [], log: [], flash: null,
+  offer: null, queue: [], cool: {}, cutLine: null, entries: [], bought: 0, log: [], flash: null,
   stats: { discards: 0, cuts: 0, refuses: 0, accepts: 0, lifeChose: 0, stuffed: 0, structural: 0, notFolded: 0, withered: 0, fullparent: false, emigrated: false, caught: false, exposed: false, topRank: 0, gray: 0, busted: 0, maxCash: 0, took: [], ev: {} },
   endCause: null,
 }
@@ -92,6 +93,7 @@ export type Action =
   | { type: 'discard'; uid: number }
   | { type: 'cut'; line: Line }
   | { type: 'emigrate' }
+  | { type: 'buy'; id: string }
   | { type: 'entry'; id: string | null }
   | { type: 'endTurn' } | { type: 'restart' }
 
@@ -146,20 +148,45 @@ export function netValue(s: State, h: Inst): number {
   return st.cash - st.upC - 1.5 * st.upE + 0.5 * st.fd + st.od + 1.5 * kid + (s.gov ? d.gMerit + d.gTies : 0)
 }
 export const slotCount = (s: State) => Math.round(s.holdings.reduce((a, h) => a + CARD[h.id].slot, 0) * 10) / 10
-export const RANK_NAME = ['', '科员', '科长', '处长', '厅局级']
-export const rankOf = (s: State) => (hasTag(s, 'power3') ? 4 : hasTag(s, 'power2') ? 3 : hasTag(s, 'power') ? 2 : hasTag(s, 'stable') ? 1 : 0)
+export const RANK_NAME = ['', '科员', '副科', '科长', '副处', '处长', '副厅', '厅局级', '副部级']
+export const rankOf = (s: State) => s.holdings.reduce((a, h) => (h.withered ? a : Math.max(a, CARD[h.id].rank)), 0)
+/** 信封和项目的油水按级别翻倍 */
+export const rankMul = (s: State) => Math.max(1, Math.ceil(rankOf(s) / 2))
 export const govScore = (s: State) => (s.gov ? Math.floor(s.gov.merit + s.gov.ties) : 0)
 /** 每回合落马概率 */
 export function caughtChance(s: State): number {
   if (!s.gov || s.gov.dirty <= 0) return 0
   const mul = activeEras(s).reduce((a, e) => a * (e.caught ?? 1), 1) * (hasTag(s, 'glove') ? 0.5 : 1) * (s.retired ? 0.5 : 1)
-  return Math.min(0.6, s.gov.dirty * 0.012 * mul)
+  return Math.min(0.6, s.gov.dirty * 0.008 * mul)
 }
 /** 灰色牌每回合出事的概率（整治期间翻倍） */
 export function riskP(s: State, d: CardDef): number {
   if (!d.risk) return 0
   const mul = d.risk.ev === 'bust' ? activeEras(s).reduce((a, x) => a * (x.caught ?? 1), 1) : 1
   return Math.min(0.5, d.risk.p * mul)
+}
+/** 走动：每回合最多换这么多次 */
+export const GIFT_MAX = 2
+/** 过了年龄线还想升：破格，多付这么多 */
+export const LATE_FEE = 12
+export interface ShopItem { def: CardDef; price: number; parentUid: number; short: number; late: boolean }
+/** 现在花钱能直接换到的官场牌。升迁的资历不够可以拿钱补：每差 1 点多付 3。 */
+export function govShop(s: State): ShopItem[] {
+  if (!s.gov || rankOf(s) < 1 || s.abroad || s.jail > 0 || s.retired) return []
+  const out: ShopItem[] = []
+  for (const def of CARDS) {
+    if (!def.price || has(s, def.id)) continue
+    const late = def.rank > 0 && s.turn > def.maxTurn
+    if (s.turn < def.minTurn || (s.turn > def.maxTurn && !late)) continue
+    if (def.instant && (s.cool[def.id] ?? 0) > s.turn) continue
+    if (def.minDirty && s.gov.dirty < def.minDirty) continue
+    if (def.needAll.some((t) => !hasTag(s, t))) continue
+    const parent = s.holdings.find((h) => !h.withered && (def.needs.includes(h.id) || def.needsTag.some((t) => CARD[h.id].tags.includes(t))))
+    if (!parent) continue
+    const short = def.needGov ? Math.max(0, def.needGov - govScore(s)) : 0
+    out.push({ def, price: def.price + 3 * short + (late ? LATE_FEE : 0), parentUid: parent.uid, short, late })
+  }
+  return out.sort((a, b) => b.def.rank - a.def.rank || Number(a.def.instant) - Number(b.def.instant))
 }
 export function load(s: State): number {
   let e = 0
@@ -327,6 +354,7 @@ function drawOffer(s: State) {
     if (minor && (def.line === 'kid' || def.kEdu > 0)) w *= 2
     if (def.tags.includes('partner') || def.id === 'k_baby') w *= 3
     if (def.line === 'gov' || def.needGov) w *= 2
+    if (def.rank) w *= 4
     if (def.needCash) w *= 2
     if (isGray(def)) w *= def.maxCash !== undefined ? 3 : 0.7
     cands.push({ def, parent, w })
@@ -352,14 +380,16 @@ function nextOffer(s: State) {
   s.phase = s.offer ? 'offer' : 'action'
 }
 
-function accept(s: State, auto = false) {
+function accept(s: State, auto = false, buy: number | null = null) {
   if (!s.offer) return
   const def = CARD[s.offer.id]
   const parent = s.holdings.find((h) => h.uid === s.offer!.parentUid)
-  const head = auto ? '可选性归零，生活替你接了：' : '顺势接下：'
-  s.cash -= def.cost
+  const head = buy !== null ? '走动换来：' : auto ? '可选性归零，生活替你接了：' : '顺势接下：'
+  const paid = buy ?? def.cost
+  s.cash -= paid
+  if (buy !== null && s.gov) s.gov.dirty += def.pDirty
   if (def.instant) {
-    const k = def.iRank ? Math.max(1, rankOf(s)) : 1
+    const k = def.iRank ? rankMul(s) : 1
     s.cash += def.iCash * k; s.cool[def.id] = s.turn + 2
     if (s.gov) { s.gov.ties += def.iTies; s.gov.dirty += def.iDirty; s.gov.merit += def.iMerit }
     if (s.kid) s.kid.edu += def.iKid
@@ -370,14 +400,15 @@ function accept(s: State, auto = false) {
   } else if (def.upgrade && parent) {
     const old = CARD[parent.id].name
     parent.id = def.id; parent.age = 0; parent.source = 'grown'
-    log(s, `${head}「${old}」长成了「${def.name}」。`, auto ? 'bad' : 'info')
+    log(s, `${head}「${old}」长成了「${def.name}」${buy !== null ? `，钱 −${paid}${def.pDirty ? `，问题 +${def.pDirty}` : ''}` : ''}。`, auto ? 'bad' : buy !== null ? 'gossip' : 'info')
   } else {
     add(s, def.id, parent?.uid ?? null, 'grown')
-    log(s, `${head}「${def.name}」${parent ? `（长自「${CARD[parent.id].name}」）` : ''}${def.cost ? `，钱 −${def.cost}` : ''}。`, auto ? 'bad' : 'info')
+    log(s, `${head}「${def.name}」${parent ? `（长自「${CARD[parent.id].name}」）` : ''}${paid ? `，钱 −${paid}` : ''}${buy !== null && def.pDirty ? `，问题 +${def.pDirty}` : ''}。`, auto ? 'bad' : 'info')
   }
   if (def.id === 'k_baby') { s.kid = { edu: 0, bond: 2, self: 0, result: '' }; log(s, '多了一条脉络：「子女」。从现在起，你发的每张牌都有人接着。', 'era') }
   if (s.kid && def.accBond) s.kid.bond += def.accBond
-  s.stats.accepts++
+  if (buy === null) s.stats.accepts++
+  else { s.bought++; mark(s, 'buy'); if (def.rank) mark(s, 'buyRank') }
   if (!s.stats.took.includes(def.id)) s.stats.took.push(def.id)
   if (isGray(def)) s.stats.gray++
   if (auto) s.stats.lifeChose++
@@ -405,6 +436,7 @@ function worldEvents(s: State) {
   // 官场：政绩与关系
   if (s.gov && hasTag(s, 'stable')) {
     for (const h of s.holdings) if (!h.withered) { s.gov.merit += CARD[h.id].gMerit; s.gov.ties += CARD[h.id].gTies }
+    if (rankOf(s) >= 1) s.gov.merit += 0.5
     if (load(s) <= capE(s)) s.gov.merit += 0.5
   }
   // 带风险的牌
@@ -413,7 +445,7 @@ function worldEvents(s: State) {
     if (!d.risk || h.withered || h.age === 0 || Math.random() >= riskP(s, d)) continue
     if (d.risk.ev === 'patronFall') {
       removeAndWither(s, h.uid)
-      if (s.gov) { s.gov.ties -= 4; log(s, '靠山倒了。「站队」这张牌没了，官场关系 −4。你是他的人，这件事所有人都记得。', 'bad'); if (s.gov.dirty >= 3 && Math.random() < 0.3) { caught(s); return } }
+      if (s.gov) { s.gov.ties -= 4; log(s, `靠山倒了。「${d.name}」这张牌没了，官场关系 −4。你是谁的人，这件事所有人都记得。`, 'bad'); if (s.gov.dirty >= 3 && Math.random() < 0.3) { caught(s); return } }
     } else if (d.risk.ev === 'bust') {
       const r = d.risk
       const par = r.killParent ? s.holdings.find((x) => x.uid === h.parent && !CARD[x.id].locked) : undefined
@@ -435,7 +467,7 @@ function worldEvents(s: State) {
       let tail = ''
       if (m && Math.random() < 0.5) { const half = Math.max(0, Math.floor(s.cash / 2)); removeAndWither(s, m.uid); s.cash -= half; tail = `离婚，分走一半：钱 −${half}。` }
       else if (m) { emit(s, 'b_cold', '被发现之后'); tail = '婚还在，日子不一样了。' }
-      if (s.gov && rankOf(s) >= 2) { s.gov.dirty += 2; tail += '作风问题记进了档案：问题 +2。' }
+      if (s.gov && rankOf(s) >= 3) { s.gov.dirty += 2; tail += '作风问题记进了档案：问题 +2。' }
       log(s, `东窗事发。体面 −3，关系债 +2${s.kid ? '，孩子亲密 −2' : ''}。${tail}`, 'era')
     }
   }
@@ -479,7 +511,7 @@ function lifeEvents(s: State) {
 }
 
 function openTurn(s: State, blank: boolean) {
-  s.turn++
+  s.turn++; s.bought = 0
   if (STAGE_START.includes(s.turn)) flipEra(s)
   lifeEvents(s)
   // 保质期
@@ -717,6 +749,11 @@ export function reducer(prev: State, a: Action): State {
     case 'discard': if (s.phase === 'action') discard(s, a.uid); break
     case 'cut': if (s.phase === 'action') cut(s, a.line); break
     case 'emigrate': if (s.phase === 'action') emigrate(s); break
+    case 'buy': {
+      const it = s.phase === 'action' && s.bought < GIFT_MAX ? govShop(s).find((x) => x.def.id === a.id) : undefined
+      if (it && s.cash >= it.price) { s.queue = []; s.offer = { id: it.def.id, parentUid: it.parentUid }; accept(s, false, it.price) }
+      break
+    }
     case 'entry':
       if (s.phase === 'cutpick') {
         if (a.id) {
@@ -769,8 +806,8 @@ export function computeEnding(s: State): Ending {
     [st.fullparent, '《把自己切给了孩子》', '你切掉了自己的行当。这张牌没有工资，也没有简历。'],
     [s.abroad && survive >= 4, '《换了一张牌桌》', '你清空了手牌，付了全价，在别人的规则里重新长出了一手牌。'],
     [st.emigrated && !s.abroad, '《回流》', '出去过，又回来了。两边的牌桌你都坐过，两边都不完全是你的。'],
-    [st.topRank >= 3 && !st.caught && !!s.gov && s.gov.dirty === 0, '《两袖清风》', '位置坐到了，手是干净的。这条路最慢，也最难。'],
-    [st.topRank >= 3 && !st.caught && !!s.gov && s.gov.dirty > 0, '《平安落地》', '有些事没人查，或者还没查到。你自己知道。'],
+    [st.topRank >= 5 && !st.caught && !!s.gov && s.gov.dirty === 0, '《两袖清风》', '位置坐到了，手是干净的。这条路最慢，也最难。'],
+    [st.topRank >= 5 && !st.caught && !!s.gov && s.gov.dirty > 0, '《平安落地》', '有些事没人查，或者还没查到。你自己知道。'],
     [st.busted >= 2, '《常在河边走》', '每一次都说是最后一次。河边的路，你走成了自己的路。'],
     [st.gray >= 4 && st.busted === 0, '《没湿鞋》', '没写着不行的事，你都试过。没出事。至少到今天。'],
     [st.exposed, '《东窗事发》', '那张牌让你喘过气。被发现的那天，别的牌一起塌了。'],

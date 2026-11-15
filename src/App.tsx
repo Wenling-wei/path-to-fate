@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useState } from 'react'
 import {
-  BUST_BODY, CARD, RANK_NAME, SEASONED, caughtChance, govScore, rankOf, slotCap, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
+  BUST_BODY, CARD, GIFT_MAX, LATE_FEE, RANK_NAME, govShop, rankMul, SEASONED, caughtChance, govScore, rankOf, slotCap, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
   actOf, activeEras, ageOf, capE, computeEnding, cutCost, cutPreview, deviation, discardPreview,
   growsFrom, hasTag, hstat, income, initial, isGray, load, netValue, reducer, riskP, slotCount,
   type Action, type CardDef, type Inst, type Line, type State,
@@ -169,7 +169,7 @@ function HoldingCard({ s, h, dispatch }: { s: State; h: Inst; dispatch: (a: Acti
 }
 
 function acceptText(s: State, d: CardDef): string {
-  const k = d.iRank ? Math.max(1, rankOf(s)) : 1
+  const k = d.iRank ? rankMul(s) : 1
   const bits = [d.cost ? `钱 −${d.cost}` : '', d.iCash ? `钱 +${d.iCash * k}` : '', d.iKid ? `孩子学业 +${d.iKid}` : '', d.iRel ? `关系债 +${d.iRel}` : '', d.iAdd ? `多一张「${CARD[d.iAdd].name}」` : '', d.iTies ? `官场关系 ${sgn(d.iTies)}` : '', d.iMerit ? `政绩 ${sgn(d.iMerit)}` : '', s.gov && d.iDirty ? `问题 ${sgn(d.iDirty)}` : '']
   return bits.filter(Boolean).join(' · ') || '无代价'
 }
@@ -233,6 +233,8 @@ function CutPick({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
 function Table({ s, dispatch, done, openBook }: { s: State; dispatch: (a: Action) => void; done: number; openBook: () => void }) {
   const [cutAsk, setCutAsk] = useState<Line | null>(null)
   const [emiAsk, setEmiAsk] = useState(false)
+  const [shopOpen, setShopOpen] = useState(false)
+  const shop = s.phase === 'action' ? govShop(s) : []
   const act = actOf(s.turn)
   const l = load(s), inc = income(s), dev = deviation(s), cap = capE(s)
   const minor = hasTag(s, 'minor')
@@ -258,7 +260,7 @@ function Table({ s, dispatch, done, openBook }: { s: State; dispatch: (a: Action
           <div className="r"><b>{dev}</b>偏离模板</div>
           {s.gov && (rankOf(s) > 0 || s.gov.dirty > 0) && (
             <div className={s.gov.dirty > 0 ? 'r gov warn' : 'r gov'}>
-              <b>{govScore(s)}·{s.gov.dirty}</b>{rankOf(s) ? RANK_NAME[rankOf(s)] : '已离开官场'}
+              <b>{govScore(s)}·{s.gov.dirty}</b>{rankOf(s) ? RANK_NAME[rankOf(s)] : hasTag(s, 'stable') ? '体制内' : '已离开官场'}
               <i>资历·问题{s.gov.dirty > 0 ? ` 落马 ${Math.round(caughtChance(s) * 100)}%/回合` : ''}</i>
             </div>
           )}
@@ -323,9 +325,36 @@ function Table({ s, dispatch, done, openBook }: { s: State; dispatch: (a: Action
               <div><button className="btn danger" onClick={() => { setEmiAsk(false); dispatch({ type: 'emigrate' }) }}>走</button> <button className="btn" onClick={() => setEmiAsk(false)}>再想想</button></div>
             </div>
           )}
+          {shopOpen && shop.length > 0 && (
+            <div className="cut-confirm shop">
+              <p><b>走动：花钱直接换官场的牌</b>（这两年还能换 {Math.max(0, GIFT_MAX - s.bought)} 次 · 你有钱 {s.cash}）</p>
+              <p>升迁的资历不够，可以拿钱补：每差 1 点多付 3。走动会留下痕迹，问题越多，落马的概率越高。</p>
+              <div className="shop-list">
+                {shop.map((it) => {
+                  const d = it.def
+                  const fx = [d.rank ? `升到${RANK_NAME[d.rank]}` : '', d.iTies ? `官场关系 ${sgn(d.iTies)}` : '', d.iMerit ? `政绩 ${sgn(d.iMerit)}` : '', d.gMerit ? `政绩 ${sgn(d.gMerit)}/回合` : '', d.gTies ? `官场关系 ${sgn(d.gTies)}/回合` : '', d.upE ? `负荷 ${sgn(d.upE)}` : '', d.upC ? `花钱 ${d.upC}/年` : '', d.life ? `持续 ${d.life * 2} 年` : '', d.instant && d.iDirty < 0 ? `问题 ${sgn(d.iDirty)}` : '', d.tags.includes('glove') ? '落马概率减半' : ''].filter(Boolean)
+                  const dirty = d.instant ? Math.max(0, d.iDirty) : d.pDirty
+                  const no = s.bought >= GIFT_MAX ? '这两年走动够多了' : s.cash < it.price ? '钱不够' : ''
+                  return (
+                    <button key={d.id} className="card offered pickable" disabled={!!no} onClick={() => dispatch({ type: 'buy', id: d.id })}>
+                      <div className="card-head"><span className="name">{d.name}</span><span className="badge amber">钱 −{it.price}</span>{dirty > 0 && <span className="badge red">问题 +{dirty}</span>}</div>
+                      <div className="stats">{fx.join(' · ')}</div>
+                      {it.short > 0 && <div className="grows closed">资历差 {it.short}（需要 {d.needGov}，你有 {govScore(s)}），多付 {it.short * 3}</div>}
+                      {it.late && <div className="grows closed">已过年龄线，破格提拔，多付 {LATE_FEE}</div>}
+                      {d.risk && <div className="grows closed">每回合 {Math.round(riskP(s, d) * 100)}% 出事</div>}
+                      <div className="flavor">{d.flavor}</div>
+                      {no && <div className="from">{no}</div>}
+                    </button>
+                  )
+                })}
+              </div>
+              <div><button className="btn" onClick={() => setShopOpen(false)}>收起</button></div>
+            </div>
+          )}
           {s.phase === 'action' && (
             <div className="actions">
-              <span>你能做的只有：弃牌、切牌，或者什么都不做。{minor ? '想转去全职培养孩子：切掉「行当」，重新开始时选它。' : ''}</span>
+              <span>你能做的只有：弃牌、切牌，或者什么都不做。{shop.length > 0 ? '在官场里，还可以花钱走动。' : ''}{minor ? '想转去全职培养孩子：切掉「行当」，重新开始时选它。' : ''}</span>
+              {shop.length > 0 && <button className="btn cut" onClick={() => setShopOpen(!shopOpen)}>走动{shopOpen ? '（收起）' : ''}</button>}
               {!s.abroad && s.turn <= 21 && (
                 <button className="btn cut" disabled={!canEmigrate(s)} onClick={() => setEmiAsk(true)}>
                   移民{canEmigrate(s) ? '' : `（需要钱 ≥ ${EMI_NEED}）`}
