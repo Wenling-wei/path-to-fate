@@ -1,21 +1,90 @@
-import { useReducer, useState } from 'react'
+import { useEffect, useReducer, useState } from 'react'
 import {
   BUST_BODY, CARD, RANK_NAME, SEASONED, caughtChance, govScore, rankOf, slotCap, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
   actOf, activeEras, ageOf, capE, computeEnding, cutCost, cutPreview, deviation, discardPreview,
-  growsFrom, hasTag, hstat, income, initial, load, netValue, reducer, slotCount,
+  growsFrom, hasTag, hstat, income, initial, isGray, load, netValue, reducer, riskP, slotCount,
   type Action, type CardDef, type Inst, type Line, type State,
 } from './game/engine'
+import { ACH, ACHS, ACH_GROUPS, evaluate, loadMeta, saveMeta, type Meta } from './game/achievements'
 
 const sgn = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${Math.abs(n)}` : '0')
 
 export default function App() {
   const [s, dispatch] = useReducer(reducer, initial)
-  if (s.phase === 'pick') return <Pick dispatch={dispatch} />
-  if (s.phase === 'end') return <End s={s} dispatch={dispatch} />
-  return <Table s={s} dispatch={dispatch} />
+  const [meta, setMeta] = useState<Meta>(loadMeta)
+  const [run, setRun] = useState<string[]>([])
+  const [toast, setToast] = useState<string[]>([])
+  const [book, setBook] = useState(false)
+  useEffect(() => {
+    if (s.phase === 'pick') { if (run.length) setRun([]); return }
+    const r = evaluate(s, meta)
+    if (!r) return
+    setMeta(r.meta); saveMeta(r.meta)
+    if (r.fresh.length) {
+      setRun((p) => [...p, ...r.fresh.filter((id) => !p.includes(id))])
+      setToast((p) => [...p, ...r.fresh.filter((id) => !p.includes(id))])
+    }
+  }, [s, meta, run.length])
+  useEffect(() => {
+    if (!toast.length) return
+    const t = setTimeout(() => setToast((p) => p.slice(1)), 2200)
+    return () => clearTimeout(t)
+  }, [toast])
+  const openBook = () => setBook(true)
+  const done = ACHS.filter((a) => meta.ach[a.id]).length
+  return (
+    <>
+      {s.phase === 'pick' ? <Pick dispatch={dispatch} done={done} openBook={openBook} />
+        : s.phase === 'end' ? <End s={s} dispatch={dispatch} run={run} openBook={openBook} />
+          : <Table s={s} dispatch={dispatch} done={done} openBook={openBook} />}
+      {book && <Book meta={meta} onClose={() => setBook(false)} onReset={() => { const m = { ach: {}, origins: [], endings: [] }; setMeta(m); saveMeta(m) }} />}
+      {toast.length > 0 && (
+        <div className="toast" key={toast[0]} role="status">
+          <i>成就</i><b>{ACH[toast[0]].name}</b><span>{ACH[toast[0]].desc}</span>
+        </div>
+      )}
+    </>
+  )
 }
 
-function Pick({ dispatch }: { dispatch: (a: Action) => void }) {
+function Book({ meta, onClose, onReset }: { meta: Meta; onClose: () => void; onReset: () => void }) {
+  const [ask, setAsk] = useState(false)
+  const done = ACHS.filter((a) => meta.ach[a.id]).length
+  return (
+    <div className="book-wrap" onClick={onClose}>
+      <div className="book" onClick={(ev) => ev.stopPropagation()}>
+        <div className="book-head">
+          <h2>成就 <small>{done}/{ACHS.length}</small></h2>
+          <button className="btn" onClick={onClose}>关闭</button>
+        </div>
+        <p className="book-note">已打完的出身 {meta.origins.length}/3 · 拿到过的结局 {meta.endings.length} 种{meta.endings.length ? `：${meta.endings.join(' ')}` : ''}</p>
+        {ACH_GROUPS.map((g) => (
+          <div key={g} className="book-group">
+            <h3>{g}</h3>
+            <div className="book-list">
+              {ACHS.filter((a) => a.group === g).map((a) => {
+                const got = !!meta.ach[a.id]
+                const secret = a.hidden && !got
+                return (
+                  <div key={a.id} className={got ? 'ach got' : 'ach'}>
+                    <b>{secret ? '？？？' : a.name}</b>
+                    <span>{secret ? '隐藏成就，做到了才知道。' : a.desc}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+        <p className="book-note">记录只保存在这台设备的这个浏览器里，换设备或清除浏览器数据后会丢失。</p>
+        {ask
+          ? <p className="book-note">确定清空全部成就记录？<button className="btn danger" onClick={() => { onReset(); setAsk(false) }}>清空</button> <button className="btn" onClick={() => setAsk(false)}>不了</button></p>
+          : <button className="btn" onClick={() => setAsk(true)}>清空记录</button>}
+      </div>
+    </div>
+  )
+}
+
+function Pick({ dispatch, done, openBook }: { dispatch: (a: Action) => void; done: number; openBook: () => void }) {
   const [hard, setHard] = useState(false)
   return (
     <div className="pick">
@@ -39,6 +108,7 @@ function Pick({ dispatch }: { dispatch: (a: Action) => void }) {
         <input type="checkbox" checked={hard} onChange={(e) => setHard(e.target.checked)} />
         逆风发牌：多带一张「家里的旧债」，钱 −1
       </label>
+      <button className="btn ach-btn" onClick={openBook}>成就 {done}/{ACHS.length}</button>
     </div>
   )
 }
@@ -79,8 +149,10 @@ function HoldingCard({ s, h, dispatch }: { s: State; h: Inst; dispatch: (a: Acti
         {!st.seasoned && !d.bad && !h.withered && st.upE > 0 && <span className="badge dim">再拿 {(SEASONED - h.age) * 2} 年变熟</span>}
         {left > 0 && <span className="badge amber">还剩 {left} 年</span>}
         {d.locked && <span className="badge dim">弃不掉</span>}
+        {isGray(d) && <span className="badge gray">灰色</span>}
       </div>
       <StatLine d={st} k={d} />
+      {d.risk?.ev === 'bust' && !h.withered && <div className="grows closed">每回合 {Math.round(riskP(s, d) * 100)}% 出事</div>}
       {st.eraNote.length > 0 && <div className="era-note">受【{st.eraNote.join('、')}】影响</div>}
       {parent && <div className="from">长自「{CARD[parent.id].name}」</div>}
       {!h.withered && g.open.length > 0 && <div className="grows">会长出：{g.open.map((c) => c.name).join('、')}</div>}
@@ -98,7 +170,7 @@ function HoldingCard({ s, h, dispatch }: { s: State; h: Inst; dispatch: (a: Acti
 
 function acceptText(s: State, d: CardDef): string {
   const k = d.iRank ? Math.max(1, rankOf(s)) : 1
-  const bits = [d.cost ? `钱 −${d.cost}` : '', d.iCash ? `钱 +${d.iCash * k}` : '', d.iTies ? `官场关系 ${sgn(d.iTies)}` : '', d.iMerit ? `政绩 ${sgn(d.iMerit)}` : '', d.iDirty ? `问题 ${sgn(d.iDirty)}` : '']
+  const bits = [d.cost ? `钱 −${d.cost}` : '', d.iCash ? `钱 +${d.iCash * k}` : '', d.iKid ? `孩子学业 +${d.iKid}` : '', d.iRel ? `关系债 +${d.iRel}` : '', d.iAdd ? `多一张「${CARD[d.iAdd].name}」` : '', d.iTies ? `官场关系 ${sgn(d.iTies)}` : '', d.iMerit ? `政绩 ${sgn(d.iMerit)}` : '', s.gov && d.iDirty ? `问题 ${sgn(d.iDirty)}` : '']
   return bits.filter(Boolean).join(' · ') || '无代价'
 }
 
@@ -112,12 +184,13 @@ function Offer({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
       <div className="offer-label">顺势牌 · 这条路递过来的{s.queue.length ? `（后面还有 ${s.queue.length} 张）` : ''}</div>
       <div className="offer-body">
         <div className="card offered">
-          <div className="card-head"><span className="name">{d.name}</span><span className="badge dim">{LINE_NAME[d.line]}</span></div>
+          <div className="card-head"><span className="name">{d.name}</span><span className="badge dim">{LINE_NAME[d.line]}</span>{isGray(d) && <span className="badge gray">灰色</span>}</div>
           <StatLine d={d} k={d} />
           {parent && <div className="from">{d.upgrade ? `「${CARD[parent.id].name}」会变成它` : `长自「${CARD[parent.id].name}」`}</div>}
           {g.open.length > 0 && <div className="grows">接了以后会长出：{g.open.map((c) => c.name).join('、')}</div>}
           {d.locked && <div className="grows closed">接了就弃不掉</div>}
           {d.instant && <div className="grows closed">一次性的事，不占卡槽</div>}
+          {d.risk?.ev === 'bust' && <div className="grows closed">每回合 {Math.round(riskP(s, d) * 100)}% 出事{d.risk.fine ? `：罚 ${d.risk.fine}` : ''}{d.risk.face ? ` · 体面 −${d.risk.face}` : ''}{d.risk.killParent ? ' · 连它长自的那张牌一起没' : ''}{d.risk.jail ? ' · 进去两年' : ''}</div>}
           {d.needGov > 0 && <div className="grows closed">资历够了（需要 {d.needGov}，你有 {govScore(s)}）</div>}
           <div className="flavor">{d.flavor}</div>
         </div>
@@ -157,7 +230,7 @@ function CutPick({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
   )
 }
 
-function Table({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
+function Table({ s, dispatch, done, openBook }: { s: State; dispatch: (a: Action) => void; done: number; openBook: () => void }) {
   const [cutAsk, setCutAsk] = useState<Line | null>(null)
   const [emiAsk, setEmiAsk] = useState(false)
   const act = actOf(s.turn)
@@ -172,6 +245,7 @@ function Table({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
         <div className="title">
           <h1>剩下的牌</h1>
           <span>{ageOf(s.turn)} 岁 · 第 {act} 幕「{STAGE_NAME[act]}」{s.retired ? ' · 已退休' : ''}</span>
+          <button className="btn ach-btn" onClick={openBook}>成就 {done}/{ACHS.length}</button>
         </div>
         <div className="res">
           <div className={l > cap ? 'r warn' : 'r'}><b>{l}/{cap}</b>负荷</div>
@@ -292,7 +366,7 @@ function Radar({ data }: { data: { label: string; v: number }[] }) {
   )
 }
 
-function End({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
+function End({ s, dispatch, run, openBook }: { s: State; dispatch: (a: Action) => void; run: string[]; openBook: () => void }) {
   const e = computeEnding(s)
   const st = s.stats
   const o = ORIGINS.find((x) => x.id === s.originId)!
@@ -312,12 +386,20 @@ function End({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
             <li>主动弃牌 {st.discards} 次，切牌 {st.cuts} 次</li>
             <li>因弃牌和切牌连根枯掉 {st.withered} 张</li>
             <li>源头发来烂牌 {st.stuffed} 张</li>
+            {st.gray > 0 && <li>接下灰色牌 {st.gray} 张，出事 {st.busted} 次</li>}
             <li>钱 {s.cash} · 体面 {s.face} · 可选性 {s.opt} · 身体债 {s.bodyDebt} · 关系债 {s.relDebt}</li>
           </ul>
           {e.legacy && <><h3>下一代</h3><p>{e.legacy}</p></>}
           <h3>最后手里的牌</h3>
           <p className="final">{s.holdings.map((h) => CARD[h.id].name + (h.withered ? '（枯）' : '')).join('、') || '空'}</p>
+          <h3>这一局解锁的成就</h3>
+          {run.length === 0 ? <p className="final">没有新的。</p> : (
+            <div className="book-list">
+              {run.map((id) => <div key={id} className="ach got"><b>{ACH[id].name}</b><span>{ACH[id].desc}</span></div>)}
+            </div>
+          )}
           <button className="btn primary" onClick={() => dispatch({ type: 'restart' })}>重新发牌</button>
+          <button className="btn" onClick={openBook}>全部成就</button>
         </div>
       </div>
     </div>

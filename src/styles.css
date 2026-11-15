@@ -138,3 +138,26 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .r.gov.warn b { color: var(--red); }
 .flash.bad { border-color: var(--red); background: #f3e2df; }
 .flash.bad b { color: var(--red); }
+
+/* 灰色牌与成就 */
+.badge.gray { background: #55524c; color: #f3efe6; border-color: #55524c; }
+.ach-btn { font-size: 12px; padding: 4px 10px; }
+.pick .ach-btn { margin-top: 18px; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; background: #1f1d1a; color: #f3efe6; padding: 10px 16px; border-radius: 4px; display: flex; gap: 10px; align-items: baseline; max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgba(0,0,0,.25); animation: toast-in .25s ease-out; }
+.toast i { font-style: normal; font-size: 11px; letter-spacing: .15em; opacity: .6; flex: none; }
+.toast b { flex: none; }
+.toast span { font-size: 12px; opacity: .8; min-width: 0; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+.book-wrap { position: fixed; inset: 0; z-index: 50; background: rgba(31,29,26,.45); display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; padding: max(16px, env(safe-area-inset-top, 0px)) 16px 32px; }
+.book { background: #f6f2e9; border: 1px solid #1f1d1a; max-width: 760px; width: 100%; padding: 20px; }
+.book-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.book-head h2 { margin: 0; }
+.book-head small { font-weight: 400; opacity: .6; font-size: 14px; }
+.book-note { font-size: 12px; opacity: .7; margin: 10px 0; }
+.book-group h3 { margin: 18px 0 8px; font-size: 13px; letter-spacing: .2em; border-bottom: 1px solid rgba(31,29,26,.2); padding-bottom: 4px; }
+.book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.ach { border: 1px dashed rgba(31,29,26,.3); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; opacity: .55; min-width: 0; }
+.ach.got { border: 1px solid #1f1d1a; opacity: 1; background: #fffdf7; }
+.ach b { font-size: 14px; }
+.ach span { font-size: 12px; opacity: .75; }

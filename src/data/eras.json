@@ -1,22 +1,339 @@
 [
-  {"id":"era_expand","act":1,"name":"扩招余波","text":"文凭多了，就不那么体面了。","rule":"标准答案型：体面漂移 −1。现场型：产出 +1。","mods":{"standard":{"fd":-1},"onsite":{"cash":1}},"boost":["onsite"]},
-  {"id":"era_net","act":1,"name":"互联网红利尾声","text":"最后一班车，车门还开着。","rule":"大厂：产出 +1。大厂相关的牌更容易递到你手上。","mods":{"bigtech":{"cash":1}},"boost":["bigtech"]},
-  {"id":"era_house_up","act":2,"name":"房价叙事强化","text":"所有饭局都在聊同一件事。","rule":"房产：体面漂移 +1，弃牌回款 +3。没房的人提前被闲话。","mods":{"house":{"fd":1,"dCash":3}},"boost":["house"],"template":"house"},
-  {"id":"era_campus","act":2,"name":"大厂扩张潮","text":"人头就是战略。","rule":"大厂：产出 +1，体面漂移 +1。","mods":{"bigtech":{"cash":1,"fd":1}},"boost":["bigtech"]},
-  {"id":"era_gig","act":2,"name":"平台零工兴起","text":"人人都可以是一个账号。","rule":"零工：产出 +1。编制：体面漂移 +1（稳定更稀缺）。","mods":{"gig":{"cash":1},"stable":{"fd":1}},"boost":["gig"]},
-  {"id":"era_ai","act":3,"name":"AI 发牌机启动","text":"规则没有通知任何人，就重写了。此后一直生效。","rule":"标准答案型：产出 −1、可选性漂移 −1。现场型：产出 +1。中层：产出 −1。","mods":{"standard":{"cash":-1,"od":-1},"onsite":{"cash":1},"middle":{"cash":-1}},"boost":["aiup","fake"]},
-  {"id":"era_layoff","act":4,"name":"优化潮","text":"“毕业”成了一个动词。","rule":"大厂：产出 −2、可选性漂移 −1，但弃牌体面税 −2（大家都在走）。编制：体面漂移 +1。","mods":{"bigtech":{"cash":-2,"od":-1,"dFace":-2},"stable":{"fd":1}},"boost":[]},
-  {"id":"era_house_down","act":4,"name":"房价叙事松动","text":"饭局换了话题。贷款没换。","rule":"房产：体面漂移 −1，弃牌回款 −3。","mods":{"house":{"fd":-1,"dCash":-3},"house2":{"cash":-1}},"boost":[]},
-  {"id":"era_jiwa","act":4,"name":"鸡娃军备竞赛","text":"三年级学完初中数学，只是起点。","rule":"有未成年孩子的人：每年多花 1。补习类的牌更容易递到你手上。","mods":{"minor":{"upC":1}},"boost":["minor"]},
-  {"id":"era_stock","act":5,"name":"存量时代","text":"蛋糕不再变大。大家开始研究怎么切。","rule":"大厂、编制：产出 −1。基金：产出 −1。","mods":{"bigtech":{"cash":-1},"stable":{"cash":-1},"fund":{"cash":-1}},"boost":[]},
-  {"id":"era_return","act":5,"name":"返乡潮","text":"大城市的故事讲完了一章。","rule":"本地关系：产出 +1。零工：产出 −1（人太多了）。","mods":{"local":{"cash":1},"gig":{"cash":-1}},"boost":["local"]},
-  {"id":"era_bull","act":5,"name":"一轮大牛市","text":"电梯里的人都在看盘。","rule":"炒股、基金：产出 +2。时代牌换掉以后，这些就没了。","mods":{"stock":{"cash":2},"fund":{"cash":2}},"boost":["stock","fund"]},
-  {"id":"era_delay","act":6,"name":"延迟退休","text":"终点线往后挪了。","rule":"退休从 60 岁推到 64 岁。","mods":{},"boost":[],"retire":2},
-  {"id":"era_silver","act":6,"name":"银发经济","text":"年轻人少了。老人的钱和时间多了。","rule":"现场型：产出 +1。退休金：产出 +1。","mods":{"onsite":{"cash":1},"pension":{"cash":1}},"boost":[]},
-  {"id":"era_medical","act":7,"name":"医疗通胀","text":"能治了。就是贵。","rule":"身体类烂牌：每年多花 1。每年生活开销 +1。","mods":{"body":{"upC":1}},"boost":[],"living":1},
-  {"id":"era_robot","act":7,"name":"机器人照护","text":"它不会烦，也不会想你。","rule":"身体类烂牌：负荷 −1。养老院：每年少花 1。","mods":{"body":{"upE":-1},"care":{"upC":-1}},"boost":[]},
-  {"id":"era_quiet","act":8,"name":"安静的街区","text":"小学改成了养老驿站。","rule":"房产：体面漂移 −1，回款 −3。","mods":{"house":{"fd":-1,"dCash":-3}},"boost":[]},
-  {"id":"era_long","act":8,"name":"长寿时代","text":"活到九十不稀奇。钱够不够是另一回事。","rule":"每年离世概率降低。每年生活开销 +1。","mods":{},"boost":[],"living":1,"death":-0.06},
-  {"id":"era_abroad","act":0,"name":"另一张牌桌","text":"你换了牌桌。旧牌的面值在这里要重新算。","rule":"标准答案型：体面漂移 −1（学历要重新认）。现场型：产出 +1。养孩子每年多花 1。海外的活工资高、也更累。闲话够不着你，不再因偏离模板扣体面。","mods":{"standard":{"fd":-1},"onsite":{"cash":1},"minor":{"upC":1}},"boost":[]},
-  {"id":"era_anticorr","act":5,"name":"反腐风暴","text":"打虎，拍蝇，倒查二十年。","rule":"有问题的人落马概率 ×2.5。有权的牌：体面漂移 −1（大家都低调了）。","mods":{"power":{"fd":-1}},"boost":[],"caught":2.5}
+  {
+    "id": "era_expand",
+    "act": 1,
+    "name": "扩招余波",
+    "text": "文凭多了，就不那么体面了。",
+    "rule": "标准答案型：体面漂移 −1。现场型：产出 +1。",
+    "mods": {
+      "standard": {
+        "fd": -1
+      },
+      "onsite": {
+        "cash": 1
+      }
+    },
+    "boost": [
+      "onsite"
+    ]
+  },
+  {
+    "id": "era_net",
+    "act": 1,
+    "name": "互联网红利尾声",
+    "text": "最后一班车，车门还开着。",
+    "rule": "大厂：产出 +1。大厂相关的牌更容易递到你手上。",
+    "mods": {
+      "bigtech": {
+        "cash": 1
+      }
+    },
+    "boost": [
+      "bigtech"
+    ]
+  },
+  {
+    "id": "era_house_up",
+    "act": 2,
+    "name": "房价叙事强化",
+    "text": "所有饭局都在聊同一件事。",
+    "rule": "房产：体面漂移 +1，弃牌回款 +3。没房的人提前被闲话。",
+    "mods": {
+      "house": {
+        "fd": 1,
+        "dCash": 3
+      }
+    },
+    "boost": [
+      "house"
+    ],
+    "template": "house"
+  },
+  {
+    "id": "era_campus",
+    "act": 2,
+    "name": "大厂扩张潮",
+    "text": "人头就是战略。",
+    "rule": "大厂：产出 +1，体面漂移 +1。",
+    "mods": {
+      "bigtech": {
+        "cash": 1,
+        "fd": 1
+      }
+    },
+    "boost": [
+      "bigtech"
+    ]
+  },
+  {
+    "id": "era_gig",
+    "act": 2,
+    "name": "平台零工兴起",
+    "text": "人人都可以是一个账号。",
+    "rule": "零工：产出 +1。编制：体面漂移 +1（稳定更稀缺）。",
+    "mods": {
+      "gig": {
+        "cash": 1
+      },
+      "stable": {
+        "fd": 1
+      }
+    },
+    "boost": [
+      "gig"
+    ]
+  },
+  {
+    "id": "era_ai",
+    "act": 3,
+    "name": "AI 发牌机启动",
+    "text": "规则没有通知任何人，就重写了。此后一直生效。",
+    "rule": "标准答案型：产出 −1、可选性漂移 −1。现场型：产出 +1。中层：产出 −1。",
+    "mods": {
+      "standard": {
+        "cash": -1,
+        "od": -1
+      },
+      "onsite": {
+        "cash": 1
+      },
+      "middle": {
+        "cash": -1
+      }
+    },
+    "boost": [
+      "aiup",
+      "fake"
+    ]
+  },
+  {
+    "id": "era_layoff",
+    "act": 4,
+    "name": "优化潮",
+    "text": "“毕业”成了一个动词。",
+    "rule": "大厂：产出 −2、可选性漂移 −1，但弃牌体面税 −2（大家都在走）。编制：体面漂移 +1。",
+    "mods": {
+      "bigtech": {
+        "cash": -2,
+        "od": -1,
+        "dFace": -2
+      },
+      "stable": {
+        "fd": 1
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_house_down",
+    "act": 4,
+    "name": "房价叙事松动",
+    "text": "饭局换了话题。贷款没换。",
+    "rule": "房产：体面漂移 −1，弃牌回款 −3。",
+    "mods": {
+      "house": {
+        "fd": -1,
+        "dCash": -3
+      },
+      "house2": {
+        "cash": -1
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_jiwa",
+    "act": 4,
+    "name": "鸡娃军备竞赛",
+    "text": "三年级学完初中数学，只是起点。",
+    "rule": "有未成年孩子的人：每年多花 1。补习类的牌更容易递到你手上。",
+    "mods": {
+      "minor": {
+        "upC": 1
+      }
+    },
+    "boost": [
+      "minor"
+    ]
+  },
+  {
+    "id": "era_stock",
+    "act": 5,
+    "name": "存量时代",
+    "text": "蛋糕不再变大。大家开始研究怎么切。",
+    "rule": "大厂、编制：产出 −1。基金：产出 −1。",
+    "mods": {
+      "bigtech": {
+        "cash": -1
+      },
+      "stable": {
+        "cash": -1
+      },
+      "fund": {
+        "cash": -1
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_return",
+    "act": 5,
+    "name": "返乡潮",
+    "text": "大城市的故事讲完了一章。",
+    "rule": "本地关系：产出 +1。零工：产出 −1（人太多了）。",
+    "mods": {
+      "local": {
+        "cash": 1
+      },
+      "gig": {
+        "cash": -1
+      }
+    },
+    "boost": [
+      "local"
+    ]
+  },
+  {
+    "id": "era_bull",
+    "act": 5,
+    "name": "一轮大牛市",
+    "text": "电梯里的人都在看盘。",
+    "rule": "炒股、基金：产出 +2。时代牌换掉以后，这些就没了。",
+    "mods": {
+      "stock": {
+        "cash": 2
+      },
+      "fund": {
+        "cash": 2
+      }
+    },
+    "boost": [
+      "stock",
+      "fund"
+    ]
+  },
+  {
+    "id": "era_delay",
+    "act": 6,
+    "name": "延迟退休",
+    "text": "终点线往后挪了。",
+    "rule": "退休从 60 岁推到 64 岁。",
+    "mods": {},
+    "boost": [],
+    "retire": 2
+  },
+  {
+    "id": "era_silver",
+    "act": 6,
+    "name": "银发经济",
+    "text": "年轻人少了。老人的钱和时间多了。",
+    "rule": "现场型：产出 +1。退休金：产出 +1。",
+    "mods": {
+      "onsite": {
+        "cash": 1
+      },
+      "pension": {
+        "cash": 1
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_medical",
+    "act": 7,
+    "name": "医疗通胀",
+    "text": "能治了。就是贵。",
+    "rule": "身体类烂牌：每年多花 1。每年生活开销 +1。",
+    "mods": {
+      "body": {
+        "upC": 1
+      }
+    },
+    "boost": [],
+    "living": 1
+  },
+  {
+    "id": "era_robot",
+    "act": 7,
+    "name": "机器人照护",
+    "text": "它不会烦，也不会想你。",
+    "rule": "身体类烂牌：负荷 −1。养老院：每年少花 1。",
+    "mods": {
+      "body": {
+        "upE": -1
+      },
+      "care": {
+        "upC": -1
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_quiet",
+    "act": 8,
+    "name": "安静的街区",
+    "text": "小学改成了养老驿站。",
+    "rule": "房产：体面漂移 −1，回款 −3。",
+    "mods": {
+      "house": {
+        "fd": -1,
+        "dCash": -3
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_long",
+    "act": 8,
+    "name": "长寿时代",
+    "text": "活到九十不稀奇。钱够不够是另一回事。",
+    "rule": "每年离世概率降低。每年生活开销 +1。",
+    "mods": {},
+    "boost": [],
+    "living": 1,
+    "death": -0.06
+  },
+  {
+    "id": "era_abroad",
+    "act": 0,
+    "name": "另一张牌桌",
+    "text": "你换了牌桌。旧牌的面值在这里要重新算。",
+    "rule": "标准答案型：体面漂移 −1（学历要重新认）。现场型：产出 +1。养孩子每年多花 1。海外的活工资高、也更累。闲话够不着你，不再因偏离模板扣体面。",
+    "mods": {
+      "standard": {
+        "fd": -1
+      },
+      "onsite": {
+        "cash": 1
+      },
+      "minor": {
+        "upC": 1
+      }
+    },
+    "boost": []
+  },
+  {
+    "id": "era_strike",
+    "act": 4,
+    "name": "专项整治",
+    "text": "口号刷在了墙上。以前睁一只眼闭一只眼的事，现在都要有个说法。",
+    "rule": "灰色牌出事的概率 ×2，落马概率 ×2。",
+    "mods": {},
+    "boost": [],
+    "caught": 2
+  },
+  {
+    "id": "era_anticorr",
+    "act": 5,
+    "name": "反腐风暴",
+    "text": "打虎，拍蝇，倒查二十年。",
+    "rule": "有问题的人落马概率 ×2.5。有权的牌：体面漂移 −1（大家都低调了）。",
+    "mods": {
+      "power": {
+        "fd": -1
+      }
+    },
+    "boost": [],
+    "caught": 2.5
+  }
 ]
