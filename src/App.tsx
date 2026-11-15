@@ -1,6 +1,6 @@
 import { useReducer, useState } from 'react'
 import {
-  BUST_BODY, CARD, SEASONED, slotCap, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
+  BUST_BODY, CARD, RANK_NAME, SEASONED, caughtChance, govScore, rankOf, slotCap, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
   actOf, activeEras, ageOf, capE, computeEnding, cutCost, cutPreview, deviation, discardPreview,
   growsFrom, hasTag, hstat, income, initial, load, netValue, reducer, slotCount,
   type Action, type CardDef, type Inst, type Line, type State,
@@ -54,7 +54,10 @@ function StatLine({ d, k }: { d: CardDef | ReturnType<typeof hstat>; k?: CardDef
   if (k?.kEdu) parts.push(`孩子学业 ${sgn(k.kEdu)}`)
   if (k?.kBond) parts.push(`孩子亲密 ${sgn(k.kBond)}`)
   if (k?.kSelf) parts.push(`孩子自主 ${sgn(k.kSelf)}`)
-  return <div className="stats">{parts.length ? parts.join(' · ') : '无产出，无维持费'}</div>
+  if (k?.gMerit) parts.push(`政绩 ${sgn(k.gMerit)}`)
+  if (k?.gTies) parts.push(`官场关系 ${sgn(k.gTies)}`)
+  if (k && !k.instant) parts.push(`占 ${k.slot} 槽`)
+  return <div className="stats">{parts.join(' · ')}</div>
 }
 
 function HoldingCard({ s, h, dispatch }: { s: State; h: Inst; dispatch: (a: Action) => void }) {
@@ -93,6 +96,12 @@ function HoldingCard({ s, h, dispatch }: { s: State; h: Inst; dispatch: (a: Acti
   )
 }
 
+function acceptText(s: State, d: CardDef): string {
+  const k = d.iRank ? Math.max(1, rankOf(s)) : 1
+  const bits = [d.cost ? `钱 −${d.cost}` : '', d.iCash ? `钱 +${d.iCash * k}` : '', d.iTies ? `官场关系 ${sgn(d.iTies)}` : '', d.iMerit ? `政绩 ${sgn(d.iMerit)}` : '', d.iDirty ? `问题 ${sgn(d.iDirty)}` : '']
+  return bits.filter(Boolean).join(' · ') || '无代价'
+}
+
 function Offer({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
   if (!s.offer) return null
   const d = CARD[s.offer.id]
@@ -108,14 +117,16 @@ function Offer({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
           {parent && <div className="from">{d.upgrade ? `「${CARD[parent.id].name}」会变成它` : `长自「${CARD[parent.id].name}」`}</div>}
           {g.open.length > 0 && <div className="grows">接了以后会长出：{g.open.map((c) => c.name).join('、')}</div>}
           {d.locked && <div className="grows closed">接了就弃不掉</div>}
+          {d.instant && <div className="grows closed">一次性的事，不占卡槽</div>}
+          {d.needGov > 0 && <div className="grows closed">资历够了（需要 {d.needGov}，你有 {govScore(s)}）</div>}
           <div className="flavor">{d.flavor}</div>
         </div>
         <div className="offer-btns">
           <button className="btn primary" onClick={() => dispatch({ type: 'accept' })}>
-            接<small>{d.cost ? `钱 −${d.cost}` : '无代价'}{s.kid && d.accBond ? ` · 亲密 ${sgn(d.accBond)}` : ''}{slotCount(s) >= slotCap(s) && !d.upgrade && !d.locked ? ' · 超仓，负荷 +1' : ''}</small>
+            接<small>{acceptText(s, d)}{s.kid && d.accBond ? ` · 亲密 ${sgn(d.accBond)}` : ''}{!d.instant && !d.upgrade && slotCount(s) + d.slot > slotCap(s) ? ' · 超仓，负荷上升' : ''}</small>
           </button>
           <button className="btn" onClick={() => dispatch({ type: 'refuse' })}>
-            不接<small>{d.refFace ? `体面 −${d.refFace}` : '无代价'}{s.kid && d.refBond ? ` · 亲密 ${sgn(d.refBond)}` : ''}</small>
+            不接<small>{[d.refFace ? `体面 −${d.refFace}` : '', s.gov && d.refTies ? `官场关系 ${sgn(d.refTies)}` : ''].filter(Boolean).join(' · ') || '无代价'}{s.kid && d.refBond ? ` · 亲密 ${sgn(d.refBond)}` : ''}</small>
           </button>
         </div>
       </div>
@@ -171,6 +182,12 @@ function Table({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
           <div className="r"><b>{s.relDebt}</b>关系债</div>
           <div className={slotCount(s) > slotCap(s) ? 'r warn' : 'r'}><b>{slotCount(s)}/{slotCap(s)}</b>仓位</div>
           <div className="r"><b>{dev}</b>偏离模板</div>
+          {s.gov && (rankOf(s) > 0 || s.gov.dirty > 0) && (
+            <div className={s.gov.dirty > 0 ? 'r gov warn' : 'r gov'}>
+              <b>{govScore(s)}·{s.gov.dirty}</b>{rankOf(s) ? RANK_NAME[rankOf(s)] : '已离开官场'}
+              <i>资历·问题{s.gov.dirty > 0 ? ` 落马 ${Math.round(caughtChance(s) * 100)}%/回合` : ''}</i>
+            </div>
+          )}
           {s.kid && <div className="r kid"><b>{s.kid.edu}·{Math.round(s.kid.bond)}·{s.kid.self}</b>孩子<i>学业·亲密·自主</i></div>}
         </div>
       </header>

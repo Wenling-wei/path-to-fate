@@ -133,3 +133,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; } .origin:hover { transform: none; } }
 
 .badge.green { color: var(--green); }
+
+.r.gov b { color: var(--blue); }
+.r.gov.warn b { color: var(--red); }
+.flash.bad { border-color: var(--red); background: #f3e2df; }
+.flash.bad b { color: var(--red); }
