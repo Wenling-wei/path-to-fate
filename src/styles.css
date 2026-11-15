@@ -131,3 +131,5 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .lines, .line, .card { min-width: 0; }
 @media (max-width: 900px) { .log { position: static; max-height: 320px; border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 10px; } header { position: static; } .pick h1 { font-size: 34px; } .end h1 { font-size: 30px; } .offer-body .card { width: 100%; } }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; } .origin:hover { transform: none; } }
+
+.badge.green { color: var(--green); }

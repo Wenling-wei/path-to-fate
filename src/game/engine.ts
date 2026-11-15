@@ -35,7 +35,10 @@ export const ERA: Record<string, EraDef> = Object.fromEntries(ERAS.map((e) => [e
 export const ORIGINS = originsRaw as unknown as OriginDef[]
 
 export const BUST_BODY = 10
-export const CAP_SLOT = 8
+/** 仓位上限：每过一幕 +2（阅历） */
+export const slotCap = (s: State) => 8 + 2 * (actOf(Math.max(1, s.turn)) - 1)
+/** 一张牌拿满这么多回合就「驾轻就熟」，负荷 −1 */
+export const SEASONED = 4
 const STAGE_START = [1, 4, 7, 10, 14, 19, 24, 29]
 export const STAGE_NAME = ['', '开荒', '成形', '结算前夜', '经营', '中年', '退场', '晚年', '尽头']
 const LIVING = [0, 1, 2, 2, 3, 3, 3, 2, 2]
@@ -99,14 +102,14 @@ export function activeEras(s: State): EraDef[] {
 }
 export function capE(s: State): number {
   const age = ageOf(s.turn)
-  return age < 46 ? 6 : age < 60 ? 5 : age < 72 ? 4 : 3
+  return (age < 50 ? 6 : age < 66 ? 5 : 4) + (hasTag(s, 'fit') ? 1 : 0)
 }
 export const livingCost = (s: State) => LIVING[actOf(Math.max(1, s.turn))] + activeEras(s).reduce((a, e) => a + (e.living ?? 0), 0)
 
-export interface HStat { upE: number; upC: number; cash: number; fd: number; od: number; dFace: number; dCash: number; dRel: number; relOpt: number; eraNote: string[] }
+export interface HStat { seasoned: boolean; upE: number; upC: number; cash: number; fd: number; od: number; dFace: number; dCash: number; dRel: number; relOpt: number; eraNote: string[] }
 export function hstat(s: State, h: Inst): HStat {
   const d = CARD[h.id]
-  const st: HStat = { upE: d.upE, upC: d.upC, cash: d.cash, fd: d.fd, od: d.od, dFace: d.dFace, dCash: d.dCash, dRel: d.dRel, relOpt: d.relOpt, eraNote: [] }
+  const st: HStat = { seasoned: false, upE: d.upE, upC: d.upC, cash: d.cash, fd: d.fd, od: d.od, dFace: d.dFace, dCash: d.dCash, dRel: d.dRel, relOpt: d.relOpt, eraNote: [] }
   for (const era of activeEras(s)) {
     for (const tag of d.tags) {
       const m = era.mods[tag]
@@ -117,6 +120,7 @@ export function hstat(s: State, h: Inst): HStat {
     }
   }
   if (d.cash >= 0 && !d.vol) st.cash = Math.max(0, st.cash)
+  if (!d.bad && !h.withered && st.upE > 0 && h.age >= SEASONED) { st.upE -= 1; st.seasoned = true }
   if (d.upE >= 0) st.upE = Math.max(0, st.upE)
   st.upC = Math.max(0, st.upC)
   if (h.late) st.cash = Math.max(0, st.cash - 1)
@@ -135,7 +139,7 @@ export const slotCount = (s: State) => s.holdings.filter((h) => !CARD[h.id].lock
 export function load(s: State): number {
   let e = 0
   for (const h of s.holdings) e += hstat(s, h).upE
-  return e + Math.max(0, slotCount(s) - CAP_SLOT)
+  return e + Math.max(0, slotCount(s) - slotCap(s))
 }
 export function income(s: State): number {
   let c = 0

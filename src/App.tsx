@@ -1,6 +1,6 @@
 import { useReducer, useState } from 'react'
 import {
-  BUST_BODY, CAP_SLOT, CARD, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
+  BUST_BODY, CARD, SEASONED, slotCap, EMI_COST, EMI_NEED, canEmigrate, emigrateGone, CUTTABLE, ERA, LINES, LINE_NAME, ORIGINS, STAGE_NAME,
   actOf, activeEras, ageOf, capE, computeEnding, cutCost, cutPreview, deviation, discardPreview,
   growsFrom, hasTag, hstat, income, initial, load, netValue, reducer, slotCount,
   type Action, type CardDef, type Inst, type Line, type State,
@@ -72,6 +72,8 @@ function HoldingCard({ s, h, dispatch }: { s: State; h: Inst; dispatch: (a: Acti
         {h.withered && <span className="badge dim">已枯</span>}
         {h.late && <span className="badge dim">入行晚</span>}
         {bleeding && <span className="badge red">吸血</span>}
+        {st.seasoned && <span className="badge green">驾轻就熟 负荷−1</span>}
+        {!st.seasoned && !d.bad && !h.withered && st.upE > 0 && <span className="badge dim">再拿 {(SEASONED - h.age) * 2} 年变熟</span>}
         {left > 0 && <span className="badge amber">还剩 {left} 年</span>}
         {d.locked && <span className="badge dim">弃不掉</span>}
       </div>
@@ -110,7 +112,7 @@ function Offer({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
         </div>
         <div className="offer-btns">
           <button className="btn primary" onClick={() => dispatch({ type: 'accept' })}>
-            接<small>{d.cost ? `钱 −${d.cost}` : '无代价'}{s.kid && d.accBond ? ` · 亲密 ${sgn(d.accBond)}` : ''}{slotCount(s) >= CAP_SLOT && !d.upgrade && !d.locked ? ' · 超仓，负荷 +1' : ''}</small>
+            接<small>{d.cost ? `钱 −${d.cost}` : '无代价'}{s.kid && d.accBond ? ` · 亲密 ${sgn(d.accBond)}` : ''}{slotCount(s) >= slotCap(s) && !d.upgrade && !d.locked ? ' · 超仓，负荷 +1' : ''}</small>
           </button>
           <button className="btn" onClick={() => dispatch({ type: 'refuse' })}>
             不接<small>{d.refFace ? `体面 −${d.refFace}` : '无代价'}{s.kid && d.refBond ? ` · 亲密 ${sgn(d.refBond)}` : ''}</small>
@@ -167,7 +169,7 @@ function Table({ s, dispatch }: { s: State; dispatch: (a: Action) => void }) {
           <div className={s.opt <= 2 ? 'r warn' : 'r'}><b>{s.opt}</b>可选性</div>
           <div className={s.bodyDebt >= 5 ? 'r warn' : 'r'}><b>{s.bodyDebt}</b>身体债<i>{BUST_BODY} 爆仓</i></div>
           <div className="r"><b>{s.relDebt}</b>关系债</div>
-          <div className={slotCount(s) > CAP_SLOT ? 'r warn' : 'r'}><b>{slotCount(s)}/{CAP_SLOT}</b>仓位</div>
+          <div className={slotCount(s) > slotCap(s) ? 'r warn' : 'r'}><b>{slotCount(s)}/{slotCap(s)}</b>仓位</div>
           <div className="r"><b>{dev}</b>偏离模板</div>
           {s.kid && <div className="r kid"><b>{s.kid.edu}·{Math.round(s.kid.bond)}·{s.kid.self}</b>孩子<i>学业·亲密·自主</i></div>}
         </div>

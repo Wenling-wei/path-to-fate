@@ -8,7 +8,7 @@
   {"id":"b_care","name":"父母要人照顾","line":"home","bad":true,"upE":1,"upC":1,"dCash":-4,"flavor":"轮到你了。兄弟姐妹的群很安静。"},
   {"id":"b_olddebt","name":"家里的旧债","line":"home","bad":true,"upC":1,"dCash":-5,"flavor":"不是你借的，但写在你的牌上。"},
   {"id":"s_young","name":"年轻","line":"self","locked":true,"upE":-1,"od":1,"life":5,"tags":["young"],"flavor":"唯一一张人人都有的好牌。有保质期。"},
-  {"id":"s_fit","name":"运动习惯","line":"self","needsTag":["home","city","distance"],"minTurn":3,"refFace":0,"tags":["fit"],"flavor":"每幕末身体债 −1。少数会自己生利息的好牌。"},
+  {"id":"s_fit","name":"运动习惯","line":"self","needsTag":["home","city","distance"],"minTurn":3,"refFace":0,"tags":["fit"],"flavor":"负荷上限 +1，每幕末身体债 −1。少数会自己生利息的好牌。"},
   {"id":"s_hobby","name":"一个长期爱好","line":"self","needsTag":["city","home","distance"],"minTurn":4,"upE":1,"od":1,"refFace":0,"tags":["hobby"],"flavor":"不挣钱，不体面，是你自己的。"},
   {"id":"s_write","name":"写了很多年的东西","line":"self","needs":["s_hobby"],"upgrade":true,"minTurn":10,"upE":1,"od":1,"fd":1,"cash":1,"refFace":0,"tags":["hobby","onsite"],"flavor":"爱好长成了一小块别人拿不走的地。"},
   {"id":"s_drink","name":"应酬酒量","line":"self","needs":["n_local","n_office","n_client","t_manager"],"upE":1,"fd":1,"dFace":1,"tags":["drink"],"flavor":"每幕末身体债 +1。桌上的体面，记在肝上。"},
@@ -122,5 +122,7 @@
   {"id":"t_ab_shop","name":"华人超市 / 外卖店","line":"trade","ab":true,"needs":["n_ab_chinese","t_ab_labor"],"cost":5,"cash":5,"upE":3,"dCash":-2,"tags":["job","onsite"],"flavor":"一年三百六十五天开门。"},
   {"id":"n_ab_chinese","name":"华人圈","line":"net","ab":true,"needs":["c_ab_visa","c_ab_pr","t_ab_labor"],"upE":1,"fd":1,"flavor":"又是一张熟人网。小一号，闲话也跟着来了。"},
   {"id":"n_ab_local","name":"本地朋友","line":"net","ab":true,"needs":["e_lang"],"upE":1,"od":1,"flavor":"他们不问你买房没有。"},
-  {"id":"b_homesick","name":"乡愁","line":"self","bad":true,"upE":1,"dCash":-2,"flavor":"半夜刷到老家下雪的视频。处理它：回去一趟。"}
+  {"id":"b_homesick","name":"乡愁","line":"self","bad":true,"upE":1,"dCash":-2,"flavor":"半夜刷到老家下雪的视频。处理它：回去一趟。"},
+  {"id":"a_helper","name":"钟点工 / 外包家务","line":"asset","needsTag":["job","pension"],"minTurn":5,"upC":1,"upE":-1,"tags":["helper"],"flavor":"花钱买回来的精力。"},
+  {"id":"a_nanny","name":"住家阿姨","line":"asset","needsTag":["minor","helper"],"minTurn":5,"upC":2,"upE":-2,"kBond":-1,"dFace":1,"flavor":"腾出两只手。孩子先学会的是阿姨的口音。"}
 ]
