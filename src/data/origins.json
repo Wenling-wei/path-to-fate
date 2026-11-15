@@ -1,0 +1,23 @@
+[
+  {
+    "id": "metro", "name": "一线中产", "cash": 6, "face": 7, "opt": 5,
+    "hand": ["h_metro", "s_young", "e_degree", "c_metro"],
+    "taste": "看起来好，弃牌贵。",
+    "win": "趁文凭还新，把它换成长在自己身上的牌。",
+    "bust": "家里递什么接什么，三十五岁时手里全是别人的牌。"
+  },
+  {
+    "id": "county", "name": "县城奋斗", "cash": 3, "face": 5, "opt": 4,
+    "hand": ["h_county", "s_young", "c_backhome", "n_local", "t_craft"],
+    "taste": "关系网都在本地，换桌贵。",
+    "win": "手艺是现场型的牌，AI 来了反而涨。守住它，或者趁年轻切一次。",
+    "bust": "人情债滚人情债，想走的时候，店、亲事、面子全长在一张网上。"
+  },
+  {
+    "id": "exam", "name": "小镇做题家", "cash": 6, "face": 5, "opt": 5,
+    "hand": ["h_town", "s_young", "e_degree", "e_exam", "c_rent"],
+    "taste": "标准答案强，现场弱。",
+    "win": "用文凭的窗口期换进一条能见人、能办事的路。",
+    "bust": "一路只长标准答案型的牌，AI 发牌机启动时整手贬值。"
+  }
+]
